@@ -1,0 +1,41 @@
+{
+  "name": "sweety",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sweety - a blood glucose tracker for diabetes patients (MERN + PostgreSQL)",
+  "type": "module",
+  "license": "MIT",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "seed": "npm run seed -w server",
+    "migrate": "npm run migrate -w server",
+    "test": "npm run test -w server && npm run test -w client",
+    "test:server": "npm run test -w server",
+    "test:client": "npm run test -w client",
+    "test:coverage": "npm run test:coverage -w server",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "concurrently": "^10.0.7",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.8",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}
