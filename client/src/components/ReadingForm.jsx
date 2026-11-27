@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react';
 import { todayISO } from '../lib/dates.js';
 import { MESSAGES, SLOTS, validateReading } from '../lib/readings.js';
-import { STATUS_LABELS, classifyReading, targetFor } from '../lib/targets.js';
+import {
+  DEFAULT_TARGETS,
+  READING_TAGS,
+  STATUS_LABELS,
+  classifyReading,
+  targetFor,
+} from '../lib/targets.js';
 
 /**
  * The form used to add a reading and to edit an existing one.
@@ -11,11 +17,12 @@ import { STATUS_LABELS, classifyReading, targetFor } from '../lib/targets.js';
  * to the field they belong to.
  *
  * @param {{
- *   initialValues?: { date?: string, slot?: string, value?: number | string },
- *   onSubmit: (values: { date: string, slot: string, value: number }) => Promise<void>,
+ *   initialValues?: { date?: string, slot?: string, value?: number | string, notes?: string, tags?: string[] },
+ *   onSubmit: (values: { date: string, slot: string, value: number, notes: string, tags: string[] }) => Promise<void>,
  *   onCancel?: () => void,
  *   submitLabel?: string,
- *   title?: string
+ *   title?: string,
+ *   targets?: typeof DEFAULT_TARGETS
  * }} props
  */
 export default function ReadingForm({
@@ -24,6 +31,7 @@ export default function ReadingForm({
   onCancel,
   submitLabel = 'Save reading',
   title = 'Add a reading',
+  targets = DEFAULT_TARGETS,
 }) {
   const [values, setValues] = useState(() => ({
     date: initialValues?.date ?? todayISO(),
@@ -32,12 +40,14 @@ export default function ReadingForm({
       initialValues?.value === undefined || initialValues?.value === null
         ? ''
         : String(initialValues.value),
+    notes: initialValues?.notes ?? '',
+    tags: initialValues?.tags ?? [],
   }));
   const [errors, setErrors] = useState({});
   const [generalError, setGeneralError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const target = targetFor(values.slot);
+  const target = targetFor(values.slot, targets);
 
   // A live preview of where the value would land, while the user is still typing.
   const preview = useMemo(() => {
@@ -51,16 +61,28 @@ export default function ReadingForm({
       return null;
     }
 
-    const status = classifyReading(value, values.slot);
+    const status = classifyReading(value, values.slot, targets);
     return { status, statusLabel: STATUS_LABELS[status] };
-  }, [values.value, values.slot]);
+  }, [values.value, values.slot, targets]);
 
   /**
-   * @param {import('react').ChangeEvent<HTMLInputElement | HTMLSelectElement>} event
+   * @param {import('react').ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>} event
    */
   function handleChange(event) {
     const { name, value } = event.target;
     setValues((current) => ({ ...current, [name]: value }));
+  }
+
+  /**
+   * @param {string} tag
+   */
+  function toggleTag(tag) {
+    setValues((current) => ({
+      ...current,
+      tags: current.tags.includes(tag)
+        ? current.tags.filter((entry) => entry !== tag)
+        : [...current.tags, tag],
+    }));
   }
 
   /**
@@ -79,7 +101,13 @@ export default function ReadingForm({
 
     setSubmitting(true);
     try {
-      await onSubmit({ date: values.date, slot: values.slot, value: Number(values.value) });
+      await onSubmit({
+        date: values.date,
+        slot: values.slot,
+        value: Number(values.value),
+        notes: values.notes.trim(),
+        tags: values.tags,
+      });
     } catch (error) {
       if (error?.field && ['value', 'date', 'slot'].includes(error.field)) {
         setErrors({ [error.field]: error.message });
@@ -148,6 +176,36 @@ export default function ReadingForm({
           ) : (
             <p className="muted">{target.label}</p>
           )}
+        </div>
+
+        <div className="field">
+          <label htmlFor="notes">What happened? (optional)</label>
+          <textarea
+            id="notes"
+            name="notes"
+            rows={2}
+            maxLength={280}
+            placeholder="Walked in the park, felt a bit tired…"
+            value={values.notes}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div className="field">
+          <span className="field-label">Tags (optional)</span>
+          <div className="tag-picker">
+            {READING_TAGS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className={`tag ${values.tags.includes(tag) ? 'selected' : ''}`}
+                onClick={() => toggleTag(tag)}
+                aria-pressed={values.tags.includes(tag)}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
         </div>
 
         {generalError ? (

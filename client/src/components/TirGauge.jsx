@@ -4,7 +4,7 @@ const RADIUS = 68;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 /**
- * The colour of the ring, following the usual goal of more than 70 percent in range.
+ * The colour of the ring, following the usual goal of more than 70 percent.
  *
  * @param {number | null} percent
  * @returns {string}
@@ -23,22 +23,24 @@ function colourFor(percent) {
 }
 
 /**
- * The time in range of a period: how much of it was spent between 70 and 180 mg/dl.
+ * A round gauge for a percentage.
+ *
+ * It is used for the time in range of a period and for the adherence of a patient.
  *
  * @param {{
  *   percent: number | null,
- *   inRange?: number,
- *   belowRange?: number,
- *   aboveRange?: number,
- *   total?: number
+ *   caption?: string,
+ *   legend?: { label: string, value: number | string, colour?: string }[],
+ *   showLegend?: boolean,
+ *   suffix?: string
  * }} props
  */
 export default function TirGauge({
   percent,
-  inRange = 0,
-  belowRange = 0,
-  aboveRange = 0,
-  total = 0,
+  caption = 'Time in range',
+  legend = [],
+  showLegend = true,
+  suffix = '%',
 }) {
   const safePercent = percent ?? 0;
   const offset = CIRCUMFERENCE * (1 - safePercent / 100);
@@ -49,7 +51,7 @@ export default function TirGauge({
       <div className="gauge-ring">
         <svg width="168" height="168" viewBox="0 0 168 168" aria-hidden="true">
           <defs>
-            <linearGradient id="tir-gradient" x1="0" y1="0" x2="1" y2="1">
+            <linearGradient id="gauge-gradient" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor={colour} stopOpacity="0.55" />
               <stop offset="100%" stopColor={colour} />
             </linearGradient>
@@ -61,7 +63,7 @@ export default function TirGauge({
             cy="84"
             r={RADIUS}
             fill="none"
-            stroke="url(#tir-gradient)"
+            stroke="url(#gauge-gradient)"
             strokeWidth="13"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
@@ -71,34 +73,26 @@ export default function TirGauge({
 
         <div className="gauge-center">
           <span className="gauge-number" style={{ color: colour }}>
-            <AnimatedNumber value={percent} decimals={1} suffix="%" />
+            <AnimatedNumber value={percent} decimals={1} suffix={suffix} />
           </span>
-          <span className="gauge-caption">Time in range</span>
+          <span className="gauge-caption">{caption}</span>
         </div>
       </div>
 
-      <div className="gauge-legend">
-        <div className="legend-row">
-          <span className="legend-dot" style={{ background: 'var(--ok)' }} />
-          <span>In range (70-180)</span>
-          <span className="legend-value">{inRange}</span>
+      {showLegend && legend.length > 0 ? (
+        <div className="gauge-legend">
+          {legend.map((entry) => (
+            <div className="legend-row" key={entry.label}>
+              <span
+                className="legend-dot"
+                style={{ background: entry.colour ?? 'var(--border-strong)' }}
+              />
+              <span>{entry.label}</span>
+              <span className="legend-value">{entry.value}</span>
+            </div>
+          ))}
         </div>
-        <div className="legend-row">
-          <span className="legend-dot" style={{ background: 'var(--danger)' }} />
-          <span>Below range</span>
-          <span className="legend-value">{belowRange}</span>
-        </div>
-        <div className="legend-row">
-          <span className="legend-dot" style={{ background: 'var(--warn)' }} />
-          <span>Above range</span>
-          <span className="legend-value">{aboveRange}</span>
-        </div>
-        <div className="legend-row">
-          <span className="legend-dot" style={{ background: 'var(--border-strong)' }} />
-          <span>Readings</span>
-          <span className="legend-value">{total}</span>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }

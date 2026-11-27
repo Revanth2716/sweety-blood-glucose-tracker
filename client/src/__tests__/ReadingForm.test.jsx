@@ -135,7 +135,32 @@ describe('ReadingForm', () => {
     await user.selectOptions(screen.getByLabelText(/time slot/i), 'after_lunch');
     await user.click(screen.getByRole('button', { name: /save reading/i }));
 
-    expect(onSubmit).toHaveBeenCalledWith({ date: today(), slot: 'after_lunch', value: 120 });
+    expect(onSubmit).toHaveBeenCalledWith({
+      date: today(),
+      slot: 'after_lunch',
+      value: 120,
+      notes: '',
+      tags: [],
+    });
+  });
+
+  it('submits the note and the tags of the reading', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<ReadingForm onSubmit={onSubmit} />);
+
+    typeValue('120');
+    await user.type(screen.getByLabelText(/what happened/i), 'A long walk');
+    await user.click(screen.getByRole('button', { name: 'exercise' }));
+    await user.click(screen.getByRole('button', { name: /save reading/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      date: today(),
+      slot: 'morning',
+      value: 120,
+      notes: 'A long walk',
+      tags: ['exercise'],
+    });
   });
 
   it('fills the form with the values of the reading that is edited', () => {

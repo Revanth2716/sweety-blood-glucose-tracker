@@ -4,11 +4,12 @@ import { useAuth } from '../context/useAuth.js';
 import { useToast } from '../context/useToast.js';
 import { formatDate, todayISO } from '../lib/dates.js';
 import { SLOTS } from '../lib/readings.js';
-import { TIR_BAND } from '../lib/targets.js';
+import { DEFAULT_TARGETS, TIR_BAND } from '../lib/targets.js';
 import ReadingForm from '../components/ReadingForm.jsx';
 import ReadingList from '../components/ReadingList.jsx';
 import SlotCard from '../components/SlotCard.jsx';
 import TirGauge from '../components/TirGauge.jsx';
+import InsightCards from '../components/InsightCards.jsx';
 import Skeleton from '../components/Skeleton.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 
@@ -32,6 +33,8 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(null);
   const [presetSlot, setPresetSlot] = useState(null);
+  const [targets, setTargets] = useState(DEFAULT_TARGETS);
+  const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -40,14 +43,18 @@ export default function DashboardPage() {
     setError('');
 
     try {
-      const [day, all] = await Promise.all([
+      const [day, all, profile, insight] = await Promise.all([
         apiFetch(`/readings?date=${selectedDate}&limit=${PAGE_SIZE}`, { token }),
         apiFetch(`/readings?page=${page}&limit=${PAGE_SIZE}`, { token }),
+        apiFetch('/profile', { token }),
+        apiFetch('/insights', { token }),
       ]);
 
       setDayReadings(day.data);
       setAllReadings(all.data);
       setPagination(all.pagination);
+      setTargets({ ...DEFAULT_TARGETS, ...profile.targets });
+      setInsights(insight);
     } catch (loadError) {
       setError(loadError.message);
     } finally {
@@ -180,6 +187,7 @@ export default function DashboardPage() {
           key={formKey}
           initialValues={formValues}
           onSubmit={editing ? handleUpdate : handleCreate}
+          targets={targets}
           onCancel={
             editing || presetSlot
               ? () => {
@@ -241,6 +249,39 @@ export default function DashboardPage() {
           </section>
         </div>
       </div>
+
+      <section className="card">
+        <div className="card-header">
+          <h2>Your last 30 days</h2>
+          <span className="muted">How consistently you record, and what stands out</span>
+        </div>
+
+        {loading || !insights ? (
+          <Skeleton lines={3} height={18} />
+        ) : (
+          <>
+            <TirGauge
+              percent={insights.adherence.percent}
+              caption="Adherence"
+              legend={[
+                {
+                  label: 'Slots filled in',
+                  value: `${insights.adherence.loggedSlots} of ${insights.adherence.possibleSlots}`,
+                },
+                { label: 'Days in a row', value: insights.adherence.streak },
+                {
+                  label: 'Complete days',
+                  value: `${insights.adherence.completeDays} of ${insights.adherence.days}`,
+                },
+              ]}
+            />
+
+            <div style={{ marginTop: '1.25rem' }}>
+              <InsightCards patterns={insights.patterns} />
+            </div>
+          </>
+        )}
+      </section>
 
       <section className="card">
         <div className="card-header">

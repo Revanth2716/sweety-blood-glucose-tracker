@@ -5,6 +5,8 @@ import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
+import SettingsPage from './pages/SettingsPage.jsx';
+import CarePage from './pages/CarePage.jsx';
 import { useAuth } from './context/useAuth.js';
 import { ToastProvider } from './context/ToastProvider.jsx';
 
@@ -51,6 +53,8 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/care" element={<CarePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

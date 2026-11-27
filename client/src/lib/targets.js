@@ -1,18 +1,23 @@
 /**
- * The glucose targets, mirrored from the server so that the interface can label a reading
- * before the answer arrives.
+ * Glucose targets.
+ *
+ * The server owns the real rules, but the interface needs the same numbers to label a reading
+ * before it is saved. The targets of the user are fetched from the profile.
  */
+export const DEFAULT_TARGETS = {
+  fastingMin: 70,
+  fastingMax: 130,
+  postMealMin: 70,
+  postMealMax: 180,
+  tirGoal: 70,
+  a1cGoal: 7,
+};
+
+/** The lower limit of the safe band. A reading below it is "low". */
 export const LOW_LIMIT = 70;
 
 /** The band used for the time in range metric. */
 export const TIR_BAND = { min: 70, max: 180 };
-
-export const TARGETS = {
-  morning: { min: 70, max: 130, label: 'Fasting target 70-130 mg/dl' },
-  after_breakfast: { min: 70, max: 180, label: 'Post-meal target 70-180 mg/dl' },
-  after_lunch: { min: 70, max: 180, label: 'Post-meal target 70-180 mg/dl' },
-  after_dinner: { min: 70, max: 180, label: 'Post-meal target 70-180 mg/dl' },
-};
 
 export const STATUS_LABELS = {
   low: 'Low',
@@ -20,13 +25,37 @@ export const STATUS_LABELS = {
   high: 'High',
 };
 
+const FASTING_SLOTS = new Set(['morning']);
+
 /**
+ * The target range of a slot.
+ *
+ * @param {string} slot
+ * @param {typeof DEFAULT_TARGETS} [targets]
+ * @returns {{ min: number, max: number, label: string }}
+ */
+export function targetFor(slot, targets = DEFAULT_TARGETS) {
+  const fasting = FASTING_SLOTS.has(slot);
+  const min = fasting ? targets.fastingMin : targets.postMealMin;
+  const max = fasting ? targets.fastingMax : targets.postMealMax;
+
+  return {
+    min,
+    max,
+    label: fasting ? `Fasting target ${min}-${max} mg/dl` : `Post-meal target ${min}-${max} mg/dl`,
+  };
+}
+
+/**
+ * Classify a reading against the target of its slot.
+ *
  * @param {number} value
  * @param {string} slot
+ * @param {typeof DEFAULT_TARGETS} [targets]
  * @returns {'low' | 'in-range' | 'high'}
  */
-export function classifyReading(value, slot) {
-  const target = TARGETS[slot] ?? TARGETS.after_lunch;
+export function classifyReading(value, slot, targets = DEFAULT_TARGETS) {
+  const target = targetFor(slot, targets);
 
   if (value < LOW_LIMIT) {
     return 'low';
@@ -38,9 +67,15 @@ export function classifyReading(value, slot) {
 }
 
 /**
- * @param {string} slot
- * @returns {{ min: number, max: number, label: string }}
+ * The tags a reading can carry.
  */
-export function targetFor(slot) {
-  return TARGETS[slot] ?? TARGETS.after_lunch;
-}
+export const READING_TAGS = [
+  'exercise',
+  'stress',
+  'illness',
+  'alcohol',
+  'late meal',
+  'skipped meal',
+  'medication',
+  'poor sleep',
+];

@@ -35,6 +35,8 @@ export default function Layout() {
                 Dashboard
               </NavLink>
               <NavLink to="/reports">Reports</NavLink>
+              {user.role === 'doctor' ? <NavLink to="/care">Patients</NavLink> : null}
+              <NavLink to="/settings">Settings</NavLink>
             </nav>
           ) : (
             <nav className="nav-links" aria-label="Main navigation" />
