@@ -26,7 +26,14 @@ const MIN_READINGS_FOR_ESTIMATE = 3;
  */
 function buildTrend(current, previous, { higherIsBetter = null } = {}) {
   if (current === null || previous === null || previous === 0) {
-    return { current, previous, change: null, changePercent: null, direction: null, higherIsBetter };
+    return {
+      current,
+      previous,
+      change: null,
+      changePercent: null,
+      direction: null,
+      higherIsBetter,
+    };
   }
 
   const change = Math.round((current - previous) * 10) / 10;
@@ -108,7 +115,10 @@ export function createReportsService({ db }) {
     return {
       report,
       range: { ...range, label: formatRangeLabel(range.from, range.to) },
-      previousRange: { ...previousRange, label: formatRangeLabel(previousRange.from, previousRange.to) },
+      previousRange: {
+        ...previousRange,
+        label: formatRangeLabel(previousRange.from, previousRange.to),
+      },
       stats: {
         highest: stats.highest,
         lowest: stats.lowest,

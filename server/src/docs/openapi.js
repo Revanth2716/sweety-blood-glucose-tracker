@@ -360,9 +360,7 @@ export const openApiDocument = {
         tags: ['Reports'],
         summary: 'The report of a single day',
         security: [{ bearerAuth: [] }],
-        parameters: [
-          { name: 'date', in: 'query', schema: { type: 'string', format: 'date' } },
-        ],
+        parameters: [{ name: 'date', in: 'query', schema: { type: 'string', format: 'date' } }],
         responses: {
           200: {
             description: 'The report',
@@ -378,9 +376,7 @@ export const openApiDocument = {
         tags: ['Reports'],
         summary: 'The report from the first of the month up to the selected date',
         security: [{ bearerAuth: [] }],
-        parameters: [
-          { name: 'date', in: 'query', schema: { type: 'string', format: 'date' } },
-        ],
+        parameters: [{ name: 'date', in: 'query', schema: { type: 'string', format: 'date' } }],
         responses: {
           200: {
             description: 'The report',
@@ -396,9 +392,7 @@ export const openApiDocument = {
         tags: ['Reports'],
         summary: 'The report of the whole previous month',
         security: [{ bearerAuth: [] }],
-        parameters: [
-          { name: 'date', in: 'query', schema: { type: 'string', format: 'date' } },
-        ],
+        parameters: [{ name: 'date', in: 'query', schema: { type: 'string', format: 'date' } }],
         responses: {
           200: {
             description: 'The report',

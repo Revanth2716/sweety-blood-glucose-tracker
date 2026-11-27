@@ -38,10 +38,7 @@ describe('reports', () => {
    * @param {number} value
    */
   async function addReading(token, date, slot, value) {
-    const response = await api
-      .post('/api/readings')
-      .set(bearer(token))
-      .send({ date, slot, value });
+    const response = await api.post('/api/readings').set(bearer(token)).send({ date, slot, value });
     expect(response.status).toBe(201);
   }
 
