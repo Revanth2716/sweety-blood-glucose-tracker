@@ -25,14 +25,41 @@ export function isUuid(value) {
 }
 
 /**
+ * The longest note that a reading can carry.
+ */
+export const MAX_NOTES_LENGTH = 280;
+
+/** The number of tags that a reading can carry. */
+export const MAX_TAGS = 6;
+
+/**
+ * Clean up the tags of a reading: lower case, no duplicates and no more than six of them.
+ *
+ * @param {unknown} tags
+ * @returns {string[]}
+ */
+export function normalizeTags(tags) {
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+
+  const cleaned = tags
+    .filter((tag) => typeof tag === 'string')
+    .map((tag) => tag.trim().toLowerCase())
+    .filter((tag) => tag.length > 0 && tag.length <= 24);
+
+  return [...new Set(cleaned)].slice(0, MAX_TAGS);
+}
+
+/**
  * Validate the body of a create/update request.
  *
  * The checks run in the order listed in the assignment, with one deliberate exception: the
  * "date cannot be in the future" check runs before the database backed checks, so that a future
  * date is never reported as "You can add only 4 readings per day.".
  *
- * @param {{ date?: unknown, slot?: unknown, value?: unknown }} input
- * @returns {{ date: string, slot: string, value: number }}
+ * @param {{ date?: unknown, slot?: unknown, value?: unknown, notes?: unknown, tags?: unknown }} input
+ * @returns {{ date: string, slot: string, value: number, notes: string, tags: string[] }}
  */
 export function validateReadingInput(input) {
   const body = input ?? {};
@@ -70,7 +97,11 @@ export function validateReadingInput(input) {
     throw badRequest(MESSAGES.invalidSlot, 'slot', 'INVALID_SLOT');
   }
 
-  return { date, slot, value };
+  // The context of the reading: an optional note and a few tags.
+  const notes = typeof body.notes === 'string' ? body.notes.trim().slice(0, MAX_NOTES_LENGTH) : '';
+  const tags = normalizeTags(body.tags);
+
+  return { date, slot, value, notes, tags };
 }
 
 /**

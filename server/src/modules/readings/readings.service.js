@@ -1,5 +1,7 @@
 import { badRequest, conflict, notFound } from '../../lib/errors.js';
 import { MAX_READINGS_PER_DAY, slotTakenMessage } from '../../lib/slots.js';
+import { buildTargets } from '../../lib/targets.js';
+import { createUsersRepository } from '../users/users.repository.js';
 import { createReadingsRepository, toReadingDto } from './readings.repository.js';
 import { MESSAGES, isUuid, parseListQuery, validateReadingInput } from './readings.schema.js';
 
@@ -10,6 +12,17 @@ import { MESSAGES, isUuid, parseListQuery, validateReadingInput } from './readin
  */
 export function createReadingsService({ db }) {
   const repo = createReadingsRepository(db);
+  const users = createUsersRepository(db);
+
+  /**
+   * The targets of the user, so that every reading is classified against the right range.
+   *
+   * @param {string} userId
+   */
+  async function getTargets(userId) {
+    const user = await users.findById(userId);
+    return buildTargets(user);
+  }
 
   /**
    * Make sure the requested slot is still free on the requested date.
@@ -41,11 +54,15 @@ export function createReadingsService({ db }) {
      */
     async list(userId, query) {
       const { page, limit, from, to } = parseListQuery(query);
-      const total = await repo.count(userId, { from, to });
-      const rows = await repo.list(userId, { from, to, limit, offset: (page - 1) * limit });
+      const targets = await getTargets(userId);
+
+      const [total, rows] = await Promise.all([
+        repo.count(userId, { from, to }),
+        repo.list(userId, { from, to, limit, offset: (page - 1) * limit }),
+      ]);
 
       return {
-        data: rows.map(toReadingDto),
+        data: rows.map((row) => toReadingDto(row, targets)),
         pagination: {
           page,
           limit,
@@ -67,7 +84,8 @@ export function createReadingsService({ db }) {
       if (!row) {
         throw notFound('Reading not found.');
       }
-      return toReadingDto(row);
+      const targets = await getTargets(userId);
+      return toReadingDto(row, targets);
     },
 
     /**
@@ -78,7 +96,8 @@ export function createReadingsService({ db }) {
       const reading = validateReadingInput(input);
       await assertSlotAvailable(userId, reading, null);
       const row = await repo.create(userId, reading);
-      return toReadingDto(row);
+      const targets = await getTargets(userId);
+      return toReadingDto(row, targets);
     },
 
     /**
@@ -99,7 +118,8 @@ export function createReadingsService({ db }) {
 
       await assertSlotAvailable(userId, reading, id);
       const row = await repo.update(userId, id, reading);
-      return toReadingDto(row);
+      const targets = await getTargets(userId);
+      return toReadingDto(row, targets);
     },
 
     /**

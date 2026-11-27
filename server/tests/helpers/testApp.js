@@ -60,3 +60,24 @@ export async function registerUser(request, overrides = {}) {
 export function bearer(token) {
   return { Authorization: `Bearer ${token}` };
 }
+
+/**
+ * Register a user and turn the account into a doctor.
+ *
+ * The public registration always creates a patient, so the role is set directly in the database.
+ *
+ * @param {import('supertest').Test} request
+ * @param {import('../../src/db/index.js').Database} db
+ * @param {{ name?: string, email?: string, password?: string }} [overrides]
+ */
+export async function registerDoctor(request, db, overrides = {}) {
+  const { user, token } = await registerUser(request, {
+    name: 'Dr Chen',
+    email: 'doctor@example.com',
+    ...overrides,
+  });
+
+  await db.getQuery('UPDATE users SET role = $2 WHERE id = $1', [user.id, 'doctor']);
+
+  return { user: { ...user, role: 'doctor' }, token };
+}

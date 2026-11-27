@@ -44,6 +44,15 @@ export function unauthorized(message = 'Authentication required.', code = 'UNAUT
  * @param {string} [code]
  * @returns {ApiError}
  */
+export function forbidden(message = 'You are not allowed to do that.', code = 'FORBIDDEN') {
+  return new ApiError(403, message, code);
+}
+
+/**
+ * @param {string} [message]
+ * @param {string} [code]
+ * @returns {ApiError}
+ */
 export function notFound(message = 'Not found.', code = 'NOT_FOUND') {
   return new ApiError(404, message, code);
 }

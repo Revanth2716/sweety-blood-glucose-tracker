@@ -1,4 +1,8 @@
 import { toReadingDto } from '../readings/readings.repository.js';
+import { estimateA1c } from '../../lib/targets.js';
+
+/** A report needs at least this many readings before an A1C estimate is meaningful. */
+export const MIN_READINGS_FOR_ESTIMATE = 3;
 
 const SLOT_ORDER = `CASE slot
     WHEN 'morning' THEN 1
@@ -48,8 +52,10 @@ export function createReportsRepository(db) {
       );
 
       const row = rows[0] ?? {};
+      const count = row.count ?? 0;
+
       return {
-        count: row.count ?? 0,
+        count,
         highest: row.highest ?? null,
         lowest: row.lowest ?? null,
         // ROUND(...) on a numeric column is returned as a string by PostgreSQL.
@@ -61,6 +67,11 @@ export function createReportsRepository(db) {
         inRange: row.in_range ?? 0,
         belowRange: row.below_range ?? 0,
         aboveRange: row.above_range ?? 0,
+        timeInRange: count === 0 ? null : Math.round(((row.in_range ?? 0) / count) * 1000) / 10,
+        estimatedA1c:
+          count >= MIN_READINGS_FOR_ESTIMATE && row.average !== null && row.average !== undefined
+            ? estimateA1c(Number(row.average))
+            : null,
       };
     },
 
@@ -70,9 +81,10 @@ export function createReportsRepository(db) {
      * @param {string} userId
      * @param {string} from `YYYY-MM-DD`
      * @param {string} to `YYYY-MM-DD`
+     * @param {any} [targets] the targets of the owner of the readings
      * @returns {Promise<any[]>}
      */
-    async list(userId, from, to) {
+    async list(userId, from, to, targets) {
       const { rows } = await db.getQuery(
         `SELECT id,
                 reading_date::text AS reading_date,
@@ -86,7 +98,7 @@ export function createReportsRepository(db) {
           ORDER BY reading_date ASC, ${SLOT_ORDER}, created_at ASC`,
         [userId, from, to],
       );
-      return rows.map(toReadingDto);
+      return rows.map((row) => toReadingDto(row, targets));
     },
 
     /**

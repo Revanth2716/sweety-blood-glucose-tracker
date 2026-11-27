@@ -6,6 +6,8 @@ const READING_COLUMNS = `
   reading_date::text AS reading_date,
   slot,
   value,
+  notes,
+  tags,
   created_at,
   updated_at`;
 
@@ -122,15 +124,15 @@ export function createReadingsRepository(db) {
 
     /**
      * @param {string} userId
-     * @param {{ date: string, slot: string, value: number }} reading
+     * @param {{ date: string, slot: string, value: number, notes?: string, tags?: string[] }} reading
      * @returns {Promise<any>}
      */
-    async create(userId, { date, slot, value }) {
+    async create(userId, { date, slot, value, notes = '', tags = [] }) {
       const { rows } = await db.getQuery(
-        `INSERT INTO readings (user_id, reading_date, slot, value)
-              VALUES ($1, $2, $3, $4)
+        `INSERT INTO readings (user_id, reading_date, slot, value, notes, tags)
+              VALUES ($1, $2, $3, $4, $5, $6::jsonb)
            RETURNING ${READING_COLUMNS}`,
-        [userId, date, slot, value],
+        [userId, date, slot, value, notes, JSON.stringify(tags)],
       );
       return rows[0];
     },
@@ -138,16 +140,21 @@ export function createReadingsRepository(db) {
     /**
      * @param {string} userId
      * @param {string} id
-     * @param {{ date: string, slot: string, value: number }} reading
+     * @param {{ date: string, slot: string, value: number, notes?: string, tags?: string[] }} reading
      * @returns {Promise<any | null>}
      */
-    async update(userId, id, { date, slot, value }) {
+    async update(userId, id, { date, slot, value, notes = '', tags = [] }) {
       const { rows } = await db.getQuery(
         `UPDATE readings
-            SET reading_date = $3, slot = $4, value = $5, updated_at = now()
+            SET reading_date = $3,
+                slot = $4,
+                value = $5,
+                notes = $6,
+                tags = $7::jsonb,
+                updated_at = now()
           WHERE id = $1::uuid AND user_id = $2
         RETURNING ${READING_COLUMNS}`,
-        [id, userId, date, slot, value],
+        [id, userId, date, slot, value, notes, JSON.stringify(tags)],
       );
       return rows[0] ?? null;
     },
@@ -170,7 +177,29 @@ export function createReadingsRepository(db) {
 }
 
 /**
+ * The tags of a reading. PostgreSQL returns a jsonb column as an object, PGlite as a string.
+ *
+ * @param {unknown} value
+ * @returns {string[]}
+ */
+export function parseTags(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.length > 0) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+/**
  * @param {any} row
+ * @param {any} [targets] the targets of the owner of the reading
  * @returns {{
  *   id: string,
  *   date: string,
@@ -180,12 +209,14 @@ export function createReadingsRepository(db) {
  *   status: 'low' | 'in-range' | 'high',
  *   statusLabel: string,
  *   target: { min: number, max: number, label: string },
+ *   notes: string,
+ *   tags: string[],
  *   createdAt: string | null,
  *   updatedAt: string | null
  * }}
  */
-export function toReadingDto(row) {
-  const status = classifyReading(row.value, row.slot);
+export function toReadingDto(row, targets) {
+  const status = classifyReading(row.value, row.slot, targets);
 
   return {
     id: row.id,
@@ -195,7 +226,9 @@ export function toReadingDto(row) {
     value: row.value,
     status,
     statusLabel: STATUS_LABELS[status],
-    target: targetFor(row.slot),
+    target: targetFor(row.slot, targets),
+    notes: row.notes ?? '',
+    tags: parseTags(row.tags),
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
     updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
   };

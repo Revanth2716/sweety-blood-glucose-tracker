@@ -7,6 +7,8 @@ import { toISODate } from '../lib/dates.js';
 const DEMO_EMAIL = 'demo@sweety.app';
 const DEMO_PASSWORD = 'demo1234';
 const DEMO_NAME = 'Demo Patient';
+const DOCTOR_EMAIL = 'dr.chen@sweety.app';
+const DOCTOR_NAME = 'Dr Chen';
 const DAYS_OF_HISTORY = 60;
 
 /** The four slots a day can contain. */
@@ -100,6 +102,36 @@ async function main() {
       userId = created.rows[0].id;
     }
 
+    // The doctor that looks after the demo patient.
+    const existingDoctor = await db.getQuery(
+      'SELECT id FROM users WHERE lower(email) = lower($1)',
+      [DOCTOR_EMAIL],
+    );
+
+    let doctorId;
+    if (existingDoctor.rows.length > 0) {
+      doctorId = existingDoctor.rows[0].id;
+      await db.getQuery(
+        `UPDATE users SET name = $2, password_hash = $3, role = 'doctor' WHERE id = $1`,
+        [doctorId, DOCTOR_NAME, passwordHash],
+      );
+    } else {
+      const created = await db.getQuery(
+        `INSERT INTO users (name, email, password_hash, role)
+              VALUES ($1, $2, $3, 'doctor')
+           RETURNING id`,
+        [DOCTOR_NAME, DOCTOR_EMAIL, passwordHash],
+      );
+      doctorId = created.rows[0].id;
+    }
+
+    await db.getQuery(
+      `INSERT INTO care_relationships (doctor_id, patient_id)
+            VALUES ($1, $2)
+       ON CONFLICT (doctor_id, patient_id) DO NOTHING`,
+      [doctorId, userId],
+    );
+
     const random = createRandom(20261015);
     const readings = [];
 
@@ -113,19 +145,38 @@ async function main() {
       }
     }
 
-    for (const reading of readings) {
+    // Every few readings get a note and a tag, so that the context of a reading is visible.
+    const contexts = [
+      { notes: 'Walked 30 minutes before breakfast.', tags: ['exercise'] },
+      { notes: 'Pizza for dinner.', tags: ['late meal'] },
+      { notes: 'Slept badly, felt stressed.', tags: ['stress', 'poor sleep'] },
+      { notes: 'Ate lunch late, forgot the tablets.', tags: ['late meal', 'medication'] },
+      { notes: 'Felt shaky in the morning.', tags: ['exercise'] },
+    ];
+
+    for (const [index, reading] of readings.entries()) {
+      const context = index % 7 === 3 ? contexts[index % contexts.length] : { notes: '', tags: [] };
+
       await db.getQuery(
-        `INSERT INTO readings (user_id, reading_date, slot, value)
-              VALUES ($1, $2, $3, $4)
+        `INSERT INTO readings (user_id, reading_date, slot, value, notes, tags)
+              VALUES ($1, $2, $3, $4, $5, $6::jsonb)
          ON CONFLICT DO NOTHING`,
-        [userId, reading.date, reading.slot, reading.value],
+        [
+          userId,
+          reading.date,
+          reading.slot,
+          reading.value,
+          context.notes,
+          JSON.stringify(context.tags),
+        ],
       );
     }
 
     console.log('Seed complete.');
-    console.log(`  Demo user : ${DEMO_EMAIL}`);
-    console.log(`  Password  : ${DEMO_PASSWORD}`);
-    console.log(`  Readings  : ${readings.length} over the last ${DAYS_OF_HISTORY} days`);
+    console.log(`  Demo patient : ${DEMO_EMAIL}`);
+    console.log(`  Demo doctor  : ${DOCTOR_EMAIL}`);
+    console.log(`  Password     : ${DEMO_PASSWORD}`);
+    console.log(`  Readings     : ${readings.length} over the last ${DAYS_OF_HISTORY} days`);
   } finally {
     await db.close();
   }

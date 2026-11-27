@@ -1,17 +1,18 @@
 import bcrypt from 'bcryptjs';
 import { conflict, notFound, unauthorized } from '../../lib/errors.js';
 import { signToken } from '../../lib/jwt.js';
-import { createUsersRepository } from './auth.repository.js';
+import { createAuthRepository } from './auth.repository.js';
 
 /**
  * @param {any} row
- * @returns {{ id: string, name: string, email: string, createdAt: string | null }}
+ * @returns {{ id: string, name: string, email: string, role: string, createdAt: string | null }}
  */
 function toPublicUser(row) {
   return {
     id: row.id,
     name: row.name,
     email: row.email,
+    role: row.role ?? 'patient',
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
   };
 }
@@ -22,7 +23,7 @@ function toPublicUser(row) {
  * @param {{ db: import('../../db/index.js').Database, config: any }} deps
  */
 export function createAuthService({ db, config }) {
-  const users = createUsersRepository(db);
+  const users = createAuthRepository(db);
 
   // A hash of a throw-away password. Comparing against it when the email is unknown keeps the
   // response time of a failed login similar for existing and unknown accounts.

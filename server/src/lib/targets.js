@@ -1,5 +1,5 @@
 /**
- * Glucose targets and the classification of a reading.
+ * Glucose targets.
  *
  * The numbers follow the usual diabetes guidance:
  *   - 70 mg/dl is the lower limit. A reading below it is a hypo ("low").
@@ -7,30 +7,46 @@
  *   - 180 mg/dl is the upper target for a reading after a meal.
  *   - 70 - 180 mg/dl is the band used for the "time in range" metric.
  *
- * Both the server and the client use these rules, so the two always agree.
+ * Every target can be changed by the user, so the rules live in a small object that is built
+ * from the row of the user.
  */
 
-/** The lower limit of the safe band. A reading below it is "low". */
+/** The default targets, used when a user has not changed anything. */
+export const DEFAULT_TARGETS = {
+  fastingMin: 70,
+  fastingMax: 130,
+  postMealMin: 70,
+  postMealMax: 180,
+  tirGoal: 70,
+  a1cGoal: 7,
+};
+
+/**
+ * Build the targets of a user from their row in the users table.
+ *
+ * @param {any} row
+ * @returns {typeof DEFAULT_TARGETS}
+ */
+export function buildTargets(row = {}) {
+  return {
+    fastingMin: row.fasting_target_min ?? DEFAULT_TARGETS.fastingMin,
+    fastingMax: row.fasting_target_max ?? DEFAULT_TARGETS.fastingMax,
+    postMealMin: row.post_meal_target_min ?? DEFAULT_TARGETS.postMealMin,
+    postMealMax: row.post_meal_target_max ?? DEFAULT_TARGETS.postMealMax,
+    tirGoal: row.tir_goal ?? DEFAULT_TARGETS.tirGoal,
+    a1cGoal: Number(row.a1c_goal ?? DEFAULT_TARGETS.a1cGoal),
+  };
+}
+
+/**
+ * The lower limit of the safe band. A reading below it is "low".
+ */
 export const LOW_LIMIT = 70;
 
 /** The band used for the time in range metric. */
 export const TIR_BAND = { min: 70, max: 180 };
 
 /**
- * The target range of every time slot.
- *
- * @type {Record<string, { min: number, max: number, label: string }>}
- */
-export const TARGETS = {
-  morning: { min: 70, max: 130, label: 'Fasting target 70-130 mg/dl' },
-  after_breakfast: { min: 70, max: 180, label: 'Post-meal target 70-180 mg/dl' },
-  after_lunch: { min: 70, max: 180, label: 'Post-meal target 70-180 mg/dl' },
-  after_dinner: { min: 70, max: 180, label: 'Post-meal target 70-180 mg/dl' },
-};
-
-/**
- * The status of a reading.
- *
  * @typedef {'low' | 'in-range' | 'high'} ReadingStatus
  */
 
@@ -41,14 +57,39 @@ export const STATUS_LABELS = {
 };
 
 /**
+ * The slots that use the fasting target.
+ */
+const FASTING_SLOTS = new Set(['morning']);
+
+/**
+ * The target range of a slot, for the targets of a user.
+ *
+ * @param {string} slot
+ * @param {typeof DEFAULT_TARGETS} [targets]
+ * @returns {{ min: number, max: number, label: string }}
+ */
+export function targetFor(slot, targets = DEFAULT_TARGETS) {
+  const fasting = FASTING_SLOTS.has(slot);
+  const min = fasting ? targets.fastingMin : targets.postMealMin;
+  const max = fasting ? targets.fastingMax : targets.postMealMax;
+
+  return {
+    min,
+    max,
+    label: fasting ? `Fasting target ${min}-${max} mg/dl` : `Post-meal target ${min}-${max} mg/dl`,
+  };
+}
+
+/**
  * Classify a reading against the target of its slot.
  *
  * @param {number} value
  * @param {string} slot
+ * @param {typeof DEFAULT_TARGETS} [targets]
  * @returns {ReadingStatus}
  */
-export function classifyReading(value, slot) {
-  const target = TARGETS[slot] ?? TARGETS.after_lunch;
+export function classifyReading(value, slot, targets = DEFAULT_TARGETS) {
+  const target = targetFor(slot, targets);
 
   if (value < LOW_LIMIT) {
     return 'low';
@@ -57,16 +98,6 @@ export function classifyReading(value, slot) {
     return 'high';
   }
   return 'in-range';
-}
-
-/**
- * The target range of a slot.
- *
- * @param {string} slot
- * @returns {{ min: number, max: number, label: string }}
- */
-export function targetFor(slot) {
-  return TARGETS[slot] ?? TARGETS.after_lunch;
 }
 
 /**
@@ -93,3 +124,17 @@ export function isInTirBand(value) {
 export function estimateA1c(average) {
   return Math.round(((average + 46.7) / 28.7) * 10) / 10;
 }
+
+/**
+ * The tags a user can put on a reading.
+ */
+export const READING_TAGS = [
+  'exercise',
+  'stress',
+  'illness',
+  'alcohol',
+  'late meal',
+  'skipped meal',
+  'medication',
+  'poor sleep',
+];

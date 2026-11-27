@@ -11,11 +11,9 @@ import {
   today,
 } from '../../lib/dates.js';
 import { slotLabel } from '../../lib/slots.js';
-import { estimateA1c, targetFor } from '../../lib/targets.js';
+import { buildTargets, targetFor } from '../../lib/targets.js';
+import { createUsersRepository } from '../users/users.repository.js';
 import { createReportsRepository } from './reports.repository.js';
-
-/** A report needs at least this many readings before an A1C estimate is meaningful. */
-const MIN_READINGS_FOR_ESTIMATE = 3;
 
 /**
  * Compare a value with the value of the previous period.
@@ -70,6 +68,7 @@ function previousRangeFor(report, range) {
  */
 export function createReportsService({ db }) {
   const repo = createReportsRepository(db);
+  const users = createUsersRepository(db);
 
   /**
    * The selected date, defaulting to today.
@@ -97,20 +96,18 @@ export function createReportsService({ db }) {
    */
   async function buildReport(userId, report, range) {
     const previousRange = previousRangeFor(report, range);
+    const user = await users.findById(userId);
+    const targets = buildTargets(user);
 
     const [stats, previousStats, bySlot, readings] = await Promise.all([
       repo.stats(userId, range.from, range.to),
       repo.stats(userId, previousRange.from, previousRange.to),
       repo.statsBySlot(userId, range.from, range.to),
-      repo.list(userId, range.from, range.to),
+      repo.list(userId, range.from, range.to, targets),
     ]);
 
-    const timeInRange =
-      stats.count === 0 ? null : Math.round((stats.inRange / stats.count) * 1000) / 10;
-    const previousTimeInRange =
-      previousStats.count === 0
-        ? null
-        : Math.round((previousStats.inRange / previousStats.count) * 1000) / 10;
+    const timeInRange = stats.timeInRange;
+    const previousTimeInRange = previousStats.timeInRange;
 
     return {
       report,
@@ -129,10 +126,7 @@ export function createReportsService({ db }) {
         belowRange: stats.belowRange,
         aboveRange: stats.aboveRange,
         timeInRange,
-        estimatedA1c:
-          stats.count >= MIN_READINGS_FOR_ESTIMATE && stats.average !== null
-            ? estimateA1c(stats.average)
-            : null,
+        estimatedA1c: stats.estimatedA1c,
       },
       trend: {
         average: buildTrend(stats.average, previousStats.average),
@@ -142,7 +136,7 @@ export function createReportsService({ db }) {
       slots: bySlot.map((entry) => ({
         ...entry,
         slotLabel: slotLabel(entry.slot),
-        target: targetFor(entry.slot),
+        target: targetFor(entry.slot, targets),
       })),
       readings,
     };
