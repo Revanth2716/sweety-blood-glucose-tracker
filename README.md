@@ -1,7 +1,8 @@
 # Sweety - Blood Glucose Tracker
 
-A small web app where a diabetes patient records up to **four blood glucose readings a day**
-and reads daily and monthly reports - with the clinical context that turns numbers into insight.
+A web app where a diabetes patient records up to **four blood glucose readings a day**, reads
+daily and monthly reports, and shares the results with the doctor who looks after them - with the
+clinical context that turns numbers into insight.
 
 Built for the Kenpath "Junior Full Stack Developer - JavaScript & AI" assignment.
 
@@ -11,6 +12,10 @@ Built for the Kenpath "Junior Full Stack Developer - JavaScript & AI" assignment
 | The dashboard                                   | The reports                                 |
 | ----------------------------------------------- | ------------------------------------------- |
 | ![Dashboard](docs/screenshots/01-dashboard.png) | ![Reports](docs/screenshots/03-reports.png) |
+
+| The insights                                  | The doctor console                                    |
+| --------------------------------------------- | ----------------------------------------------------- |
+| ![Insights](docs/screenshots/08-insights.png) | ![Care console](docs/screenshots/09-care-console.png) |
 
 ---
 
@@ -24,7 +29,7 @@ Built for the Kenpath "Junior Full Stack Developer - JavaScript & AI" assignment
 - [Setup](#setup)
 - [Database setup](#database-setup)
 - [Running the server, the client and the tests](#running-the-server-the-client-and-the-tests)
-- [Demo account](#demo-account)
+- [Demo accounts](#demo-accounts)
 - [API reference](#api-reference)
 - [Screenshots](#screenshots)
 - [Project structure](#project-structure)
@@ -45,13 +50,13 @@ Built for the Kenpath "Junior Full Stack Developer - JavaScript & AI" assignment
 - **Validation with clear messages** - every rule from the assignment is checked in the browser
   and again on the server, and the message is shown exactly as it was specified:
 
-  | Rule                                            | Message                                                  |
-  | ----------------------------------------------- | -------------------------------------------------------- |
-  | Value is required                               | `Please enter a glucose value.`                          |
-  | Value must be a whole number between 40 and 600 | `Value must be between 40 and 600 mg/dl.`                |
-  | Only one reading per slot per day               | `You already have an After lunch reading for this date.` |
-  | Maximum 4 readings per day                      | `You can add only 4 readings per day.`                   |
-  | Date cannot be in the future                    | `Date cannot be in the future.`                          |
+| Rule                                            | Message                                                  |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| Value is required                               | `Please enter a glucose value.`                          |
+| Value must be a whole number between 40 and 600 | `Value must be between 40 and 600 mg/dl.`                |
+| Only one reading per slot per day               | `You already have an After lunch reading for this date.` |
+| Maximum 4 readings per day                      | `You can add only 4 readings per day.`                   |
+| Date cannot be in the future                    | `Date cannot be in the future.`                          |
 
 - **Reports** - daily, month to date and monthly. Each report shows the highest, the lowest, the
   average (rounded to one decimal place) and the number of readings. The daily report also lists
@@ -70,6 +75,18 @@ Built for the Kenpath "Junior Full Stack Developer - JavaScript & AI" assignment
 - **Time in range** - the percentage of the readings between 70 and 180 mg/dl, drawn as a gauge.
 - **Trend** - every report is compared with the period right before it.
 - **Estimated A1C** - an estimate of the HbA1c from the average glucose of the period.
+- **Personal targets** - the patient sets their own ranges and goals, and every reading and report
+  follows them.
+- **The context of a reading** - a note ("walked 30 minutes before breakfast") and tags
+  (exercise, stress, illness, late meal, medication, poor sleep).
+- **Adherence** - how consistently the readings were recorded: the share of the slots that were
+  filled in, the days in a row and the days that are complete.
+- **The insight engine** - plain rules that point out what stands out: the slot that is missed
+  most, the difference between the morning and the after-meal readings, readings below 70 mg/dl and
+  the goals that were reached.
+- **A care team and a doctor console** - a doctor sees the patients they look after, with the
+  time in range, the adherence and the flags of every patient, and can open their reports.
+- **CSV export** - every reading as a spreadsheet file, to share with a doctor.
 - **API documentation** - an OpenAPI document and a Swagger UI at `/api/docs`.
 - **Continuous integration** - GitHub Actions runs the formatter, the linter, the tests and the
   build on every push.
@@ -80,16 +97,18 @@ Built for the Kenpath "Junior Full Stack Developer - JavaScript & AI" assignment
 
 A number on its own is not very useful, so every reading and every report comes with context.
 
-| Signal                    | What it means                                                                                                                                         |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Low / In range / High** | A reading below 70 mg/dl is _low_, a fasting reading above 130 mg/dl and a reading after a meal above 180 mg/dl is _high_.                            |
-| **Time in range**         | The share of the readings between 70 and 180 mg/dl - the measure that is used in diabetes care. Above 70 percent is the usual goal.                   |
-| **Trend**                 | The average, the number of readings and the time in range of the period before, with the change in percent.                                           |
-| **Estimated A1C**         | `A1C = (average glucose + 46.7) / 28.7`. An estimate for the patient's own information, not a diagnosis. It only appears with three readings or more. |
-| **By time slot**          | The average of every slot, so it is visible that the after dinner readings run higher than the morning ones.                                          |
+| Signal                    | What it means                                                                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Low / In range / High** | A reading below 70 mg/dl is _low_, a fasting reading above 130 mg/dl and a reading after a meal above 180 mg/dl is _high_.                                 |
+| **Time in range**         | The share of the readings between 70 and 180 mg/dl - the measure that is used in diabetes care. Above 70 percent is the usual goal.                        |
+| **Trend**                 | The average, the number of readings and the time in range of the period before, with the change in percent.                                                |
+| **Adherence**             | How many of the possible slots were filled in, how many days in a row and how many days were complete.                                                     |
+| **Estimated A1C**         | `A1C = (average glucose + 46.7) / 28.7`. An estimate for the patient's own information, not a diagnosis. It only appears with three readings or more.      |
+| **The patterns**          | The slot that is missed most, the difference between the morning and the after-meal readings, the readings below 70 mg/dl and the goals that were reached. |
+| **By time slot**          | The average of every slot, so it is visible that the after dinner readings run higher than the morning ones.                                               |
 
-The target ranges live in one file on the server (`server/src/lib/targets.js`) and are mirrored
-for the interface in `client/src/lib/targets.js`, so the two always agree.
+The target ranges live in one file on the server (`server/src/lib/targets.js`) and are mirrored for
+the interface in `client/src/lib/targets.js`, so the two always agree.
 
 ---
 
@@ -145,9 +164,9 @@ Browser --> Routes --> Services --> Repositories --> PostgreSQL
            +-- authentication, validation, error envelope
 ```
 
-The database is reached through one small adapter (`server/src/db/index.js`), so the same SQL
-runs on the embedded PGlite database used in development and the tests, and on a real PostgreSQL
-server used in production.
+The database is reached through one small adapter (`server/src/db/index.js`), so the same SQL runs
+on the embedded PGlite database used in development and the tests, and on a real PostgreSQL server
+used in production.
 
 ---
 
@@ -175,7 +194,7 @@ cp .env.example .env          # Windows PowerShell: copy .env.example .env
 # 4. put a real secret into JWT_SECRET inside .env
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
-# 5. create the demo user and 60 days of sample readings
+# 5. create the demo accounts and 60 days of sample readings
 npm run seed
 
 # 6. start the API and the client
@@ -192,8 +211,8 @@ The client is then available at **http://localhost:5173** and the API at
 
 ### A. Embedded PGlite (default, nothing to install)
 
-`PGlite` is PostgreSQL 17 compiled to WebAssembly. It runs inside the Node process and stores
-its data in the `.pglite/` folder. This is the path the tests and the screenshots use.
+`PGlite` is PostgreSQL 17 compiled to WebAssembly. It runs inside the Node process and stores its
+data in the `.pglite/` folder. This is the path the tests and the screenshots use.
 
 ```bash
 # .env
@@ -234,7 +253,7 @@ and `npm run migrate` applies them on their own. The applied migrations are trac
 | `npm run dev:client`    | Runs only the Vite dev server                                 |
 | `npm run build`         | Builds the client into `client/dist`                          |
 | `npm start`             | Runs the API without the file watcher                         |
-| `npm run seed`          | Creates the demo user and the sample readings                 |
+| `npm run seed`          | Creates the demo accounts and the sample readings             |
 | `npm run migrate`       | Applies the database migrations only                          |
 | `npm test`              | Runs the API tests and the frontend tests                     |
 | `npm run test:server`   | Runs only the API tests (Vitest + Supertest)                  |
@@ -260,17 +279,18 @@ nginx proxies `/api` to the API container, so the browser only talks to one orig
 
 ---
 
-## Demo account
+## Demo accounts
 
-The seed script creates this account with 60 days of sample readings:
+The seed script creates two accounts with 60 days of sample readings:
 
-|          |                   |
-| -------- | ----------------- |
-| Email    | `demo@sweety.app` |
-| Password | `demo1234`        |
+| Role    | Email                | Password   | What it shows                               |
+| ------- | -------------------- | ---------- | ------------------------------------------- |
+| Patient | `demo@sweety.app`    | `demo1234` | The dashboard, the reports and the insights |
+| Doctor  | `dr.chen@sweety.app` | `demo1234` | The doctor console with the patient         |
 
-The seed script can be run as often as you like - it resets the readings of the demo user and
-writes the same data again (the random numbers are seeded, so the data is always the same).
+The two accounts are linked, so Dr Chen sees the patient in the care team. The seed script can be
+run as often as you like - it resets the readings and writes the same data again (the random
+numbers are seeded, so the data is always the same).
 
 ---
 
@@ -282,11 +302,11 @@ by Swagger UI at `/api/docs`.
 
 ### Auth
 
-| Method | Endpoint             | Body                        | Success               | Errors                                     |
-| ------ | -------------------- | --------------------------- | --------------------- | ------------------------------------------ |
-| POST   | `/api/auth/register` | `{ name, email, password }` | `201 { user, token }` | `400` validation, `409` email already used |
-| POST   | `/api/auth/login`    | `{ email, password }`       | `200 { user, token }` | `400` validation, `401` wrong credentials  |
-| GET    | `/api/auth/me`       | –                           | `200 { user }`        | `401` missing or expired token             |
+| Method | Endpoint             | Body                        | Success               | Errors                                    |
+| ------ | -------------------- | --------------------------- | --------------------- | ----------------------------------------- |
+| POST   | `/api/auth/register` | `{ name, email, password }` | `201 { user, token }` | `400` validation, `409` email taken       |
+| POST   | `/api/auth/login`    | `{ email, password }`       | `200 { user, token }` | `400` validation, `401` wrong credentials |
+| GET    | `/api/auth/me`       | –                           | `200 { user }`        | `401` missing or expired token            |
 
 ### Readings
 
@@ -297,6 +317,10 @@ by Swagger UI at `/api/docs`.
 | POST   | `/api/readings`     | Create a reading                        | `201 { reading }`          |
 | PUT    | `/api/readings/:id` | Update a reading                        | `200 { reading }`          |
 | DELETE | `/api/readings/:id` | Delete a reading                        | `204`                      |
+| GET    | `/api/readings.csv` | Download every reading as a CSV file    | `200 text/csv`             |
+
+A reading is `{ date, slot, value, notes?, tags? }`. The slot is one of `morning`,
+`after_breakfast`, `after_lunch`, `after_dinner`.
 
 Query parameters of `GET /api/readings`:
 
@@ -318,12 +342,32 @@ Query parameters of `GET /api/readings`:
       "value": 142,
       "status": "in-range",
       "statusLabel": "In range",
-      "target": { "min": 70, "max": 180, "label": "Post-meal target 70-180 mg/dl" }
+      "target": { "min": 70, "max": 180, "label": "Post-meal target 70-180 mg/dl" },
+      "notes": "Pizza for lunch.",
+      "tags": ["late meal"]
     }
   ],
   "pagination": { "page": 1, "limit": 20, "total": 57, "totalPages": 3 }
 }
 ```
+
+### Profile, targets and the care team
+
+| Method | Endpoint                                 | Purpose                                 | Success                           |
+| ------ | ---------------------------------------- | --------------------------------------- | --------------------------------- |
+| GET    | `/api/profile`                           | The user, the targets and the care team | `200 { user, targets, careTeam }` |
+| PUT    | `/api/profile/targets`                   | Change the targets and the goals        | `200 { targets }`                 |
+| GET    | `/api/care/patients`                     | The patients of a doctor                | `200 { patients }`                |
+| POST   | `/api/care/patients`                     | Add a patient by email                  | `201 { linked, patient }`         |
+| DELETE | `/api/care/patients/:patientId`          | Remove a patient                        | `204`                             |
+| GET    | `/api/care/patients/:patientId/report`   | The report of a patient                 | `200` report                      |
+| GET    | `/api/care/patients/:patientId/insights` | The insights of a patient               | `200` insights                    |
+
+### Insights
+
+| Method | Endpoint        | Purpose                                | Success                               |
+| ------ | --------------- | -------------------------------------- | ------------------------------------- |
+| GET    | `/api/insights` | Adherence and the patterns of a period | `200 { period, adherence, patterns }` |
 
 ### Reports
 
@@ -387,15 +431,18 @@ Every error uses the same envelope, so the interface can always show the message
 
 ## Screenshots
 
-| File                                       | What it shows                                                     |
-| ------------------------------------------ | ----------------------------------------------------------------- |
-| `docs/screenshots/01-dashboard.png`        | The dashboard: the form, the four slots and the paginated history |
-| `docs/screenshots/02-validation-error.png` | The validation message of the reading form                        |
-| `docs/screenshots/03-reports.png`          | The reports with the stat cards and the trend                     |
-| `docs/screenshots/04-time-in-range.png`    | The time in range gauge                                           |
-| `docs/screenshots/05-chart.png`            | The chart of the readings over the month                          |
-| `docs/screenshots/06-sign-up.png`          | The sign up page                                                  |
-| `docs/screenshots/07-api-docs.png`         | The Swagger UI of the API                                         |
+| File                                       | What it shows                                           |
+| ------------------------------------------ | ------------------------------------------------------- |
+| `docs/screenshots/01-dashboard.png`        | The dashboard: the form, the four slots and the history |
+| `docs/screenshots/02-validation-error.png` | The validation message of the reading form              |
+| `docs/screenshots/03-reports.png`          | The reports with the stat cards and the trend           |
+| `docs/screenshots/04-time-in-range.png`    | The time in range gauge                                 |
+| `docs/screenshots/05-chart.png`            | The chart of the readings over the month                |
+| `docs/screenshots/06-sign-up.png`          | The sign up page                                        |
+| `docs/screenshots/07-api-docs.png`         | The Swagger UI of the API                               |
+| `docs/screenshots/08-insights.png`         | The adherence gauge and the patterns                    |
+| `docs/screenshots/09-care-console.png`     | The console of a doctor                                 |
+| `docs/screenshots/10-settings.png`         | The targets, the goals and the care team                |
 
 ---
 
@@ -416,16 +463,16 @@ Every error uses the same envelope, so the interface can always show the message
 │  │  ├─ docs/                   # the OpenAPI document and Swagger UI
 │  │  ├─ lib/                    # errors, jwt, dates, slots, targets
 │  │  ├─ middleware/             # auth, validation, error handler
-│  │  ├─ modules/                # auth, readings, reports
+│  │  ├─ modules/                # auth, readings, reports, users, insights, exports
 │  │  └─ scripts/seed.js
 │  └─ tests/                     # Vitest + Supertest
 └─ client/
    ├─ src/
    │  ├─ api/client.js           # fetch wrapper for the API
    │  ├─ context/                 # authentication state and toasts
-   │  ├─ components/              # form, slot cards, gauge, chart, tables
+   │  ├─ components/              # form, slot cards, gauge, insights, tables
    │  ├─ lib/                     # dates, slots, targets, validation
-   │  ├─ pages/                   # login, sign up, dashboard, reports
+   │  ├─ pages/                   # login, sign up, dashboard, reports, settings, care
    │  └─ __tests__/               # React Testing Library
    └─ Dockerfile, nginx.conf
 ```
@@ -458,43 +505,47 @@ Every error uses the same envelope, so the interface can always show the message
    numbers. The rounding happens in SQL (`ROUND(AVG(value)::numeric, 1)`).
 7. **The target ranges are the usual ones.** 70 mg/dl is used as the lower limit (a reading below
    it is a hypo), 130 mg/dl as the upper target of a fasting reading and 180 mg/dl as the upper
-   target after a meal. They are constants in `server/src/lib/targets.js`, not something a user
-   can configure.
+   target after a meal. The patient can change all of them in the settings.
 8. **The time in range band (70-180 mg/dl) is not the same as the target of a slot.** A fasting
    reading of 140 is _high_ against the fasting target, but still inside the time in range band.
    That is how the measures are used in diabetes care, and both are shown in the interface.
 9. **The estimated A1C is an estimate** from the average glucose, not a diagnosis, and it only
    appears when there are at least three readings.
-10. **The password policy is 8 to 72 characters.** 72 characters is the limit of bcrypt.
-11. **The token is stored in `localStorage`.** That is the simplest approach for a single page
+10. **The patterns are rules, not a model.** Every insight says which numbers it is based on, so
+    it can be checked. A real system would learn them from the data of many patients.
+11. **The doctor is added by email.** The doctor registers an account, and the patient has to
+    exist with that email address. There is no invitation by mail yet.
+12. **The password policy is 8 to 72 characters.** 72 characters is the limit of bcrypt.
+13. **The token is stored in `localStorage`.** That is the simplest approach for a single page
     application, but it exposes the token to XSS. In production I would use a short lived access
     token in memory plus a refresh token in an httpOnly, SameSite cookie.
-12. **The embedded PGlite database is the default for development.** The production setup is a
+14. **The embedded PGlite database is the default for development.** The production setup is a
     real PostgreSQL server; the application code is the same for both, only the driver changes.
     The Docker stack is the reference for the PostgreSQL path.
-13. **The Docker stack was written but not run on my machine** - Docker was not installed there.
+15. **The Docker stack was written but not run on my machine** - Docker was not installed there.
     The compose file and the Dockerfiles follow the documented format and the YAML was validated,
     but the containers themselves have not been started here.
-14. **The email address is unique regardless of case**, so `Alice@example.com` and
+16. **The email address is unique regardless of case**, so `Alice@example.com` and
     `alice@example.com` are the same account.
 
 ### What I would improve with more time
 
-- **A doctor role** with patients assigned to a doctor, so a doctor can read the reports of the
-  patients they look after.
+- **Refresh tokens** with a short lived access token, which fixes the `localStorage` trade-off.
+- **Email verification and password reset** by email, with single use tokens, and an invitation
+  mail when a doctor adds a patient.
+- **Reminders**: a daily reminder to record the readings, and a reminder when a slot is missing.
+  This needs a job runner (BullMQ) and Redis.
 - **Redis for the report results**, cleared whenever a reading changes - the reports are read far
   more often than they are written.
-- **A daily reminder** with BullMQ: a job that finds the users with fewer than four readings and
-  sends them a reminder.
-- **Refresh tokens** with a short lived access token, which fixes the `localStorage` trade-off.
-- **Email verification and password reset** by email, with single use tokens.
+- **The patterns learned from data.** The rules are written by hand; with enough patients they
+  could be found automatically.
 - **Unit conversion** between mg/dl and mmol/L, and a print friendly report that a patient can
   hand to their doctor.
-- **Export** of the readings and the reports as CSV or PDF.
+- **Export as PDF** next to the CSV export.
+- **Family mode**: several profiles in one account, so a parent can follow a child.
+- **An offline first PWA** that installs on the phone and keeps working without a connection.
 - **End to end tests** with Playwright, on top of the API and component tests that are already
   there.
-- **A doctor view of a single patient**, which would be the first thing to build on top of the
-  current data model.
 
 ---
 

@@ -74,6 +74,23 @@ export const openApiDocument = {
             enum: ['morning', 'after_breakfast', 'after_lunch', 'after_dinner'],
           },
           value: { type: 'integer', minimum: 40, maximum: 600, example: 142 },
+          notes: { type: 'string', maxLength: 280, example: 'Walked before breakfast.' },
+          tags: {
+            type: 'array',
+            items: { type: 'string' },
+            example: ['exercise', 'stress'],
+          },
+        },
+      },
+      Targets: {
+        type: 'object',
+        properties: {
+          fastingMin: { type: 'integer', example: 70 },
+          fastingMax: { type: 'integer', example: 130 },
+          postMealMin: { type: 'integer', example: 70 },
+          postMealMax: { type: 'integer', example: 180 },
+          tirGoal: { type: 'integer', example: 70 },
+          a1cGoal: { type: 'number', example: 7 },
         },
       },
       Stats: {
@@ -352,6 +369,203 @@ export const openApiDocument = {
         responses: {
           204: { description: 'The reading was deleted' },
           404: { description: 'There is no such reading' },
+        },
+      },
+    },
+    '/profile': {
+      get: {
+        tags: ['Profile'],
+        summary: 'The signed in user, the targets and the care team',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'The profile',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    user: { type: 'object' },
+                    targets: { $ref: '#/components/schemas/Targets' },
+                    careTeam: { type: 'array', items: { type: 'object' } },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: 'Missing or expired token' },
+        },
+      },
+    },
+    '/profile/targets': {
+      put: {
+        tags: ['Profile'],
+        summary: 'Change the targets and the goals of the user',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/Targets' } },
+          },
+        },
+        responses: {
+          200: { description: 'The new targets' },
+          400: { description: 'The targets are not valid' },
+          401: { description: 'Missing or expired token' },
+        },
+      },
+    },
+    '/care/patients': {
+      get: {
+        tags: ['Care team'],
+        summary: 'The patients of a doctor, with the numbers of the last 30 days',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'The patients' },
+          401: { description: 'Missing or expired token' },
+          403: { description: 'Only a doctor can see the patients' },
+        },
+      },
+      post: {
+        tags: ['Care team'],
+        summary: 'Add a patient to the care team of a doctor',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email'],
+                properties: { email: { type: 'string', format: 'email' } },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'The patient was added' },
+          401: { description: 'Missing or expired token' },
+          403: { description: 'Only a doctor can add a patient' },
+          404: { description: 'There is no account with that email' },
+        },
+      },
+    },
+    '/care/patients/{patientId}': {
+      parameters: [
+        {
+          name: 'patientId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string', format: 'uuid' },
+        },
+      ],
+      delete: {
+        tags: ['Care team'],
+        summary: 'Remove a patient from the care team',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          204: { description: 'The patient was removed' },
+          401: { description: 'Missing or expired token' },
+          403: { description: 'Only a doctor can remove a patient' },
+          404: { description: 'The patient is not in the care team' },
+        },
+      },
+    },
+    '/care/patients/{patientId}/report': {
+      parameters: [
+        {
+          name: 'patientId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string', format: 'uuid' },
+        },
+        {
+          name: 'type',
+          in: 'query',
+          schema: { type: 'string', enum: ['daily', 'month-to-date', 'monthly'] },
+        },
+        { name: 'date', in: 'query', schema: { type: 'string', format: 'date' } },
+      ],
+      get: {
+        tags: ['Care team'],
+        summary: 'The report of a patient',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'The report',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Report' } },
+            },
+          },
+          403: { description: 'The patient is not in your care team' },
+        },
+      },
+    },
+    '/care/patients/{patientId}/insights': {
+      parameters: [
+        {
+          name: 'patientId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string', format: 'uuid' },
+        },
+        { name: 'from', in: 'query', schema: { type: 'string', format: 'date' } },
+        { name: 'to', in: 'query', schema: { type: 'string', format: 'date' } },
+      ],
+      get: {
+        tags: ['Care team'],
+        summary: 'The adherence and the patterns of a patient',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'The insights of the patient' },
+          403: { description: 'The patient is not in your care team' },
+        },
+      },
+    },
+    '/insights': {
+      get: {
+        tags: ['Insights'],
+        summary: 'The adherence and the patterns of a period',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'from', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'to', in: 'query', schema: { type: 'string', format: 'date' } },
+        ],
+        responses: {
+          200: {
+            description: 'The insights',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    period: { type: 'object' },
+                    adherence: { type: 'object' },
+                    patterns: { type: 'array', items: { type: 'object' } },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: 'Missing or expired token' },
+        },
+      },
+    },
+    '/readings.csv': {
+      get: {
+        tags: ['Readings'],
+        summary: 'Download every reading as a CSV file',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'from', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'to', in: 'query', schema: { type: 'string', format: 'date' } },
+        ],
+        responses: {
+          200: {
+            description: 'The readings as a CSV file',
+            content: { 'text/csv': { schema: { type: 'string' } } },
+          },
+          401: { description: 'Missing or expired token' },
         },
       },
     },
