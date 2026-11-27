@@ -23,7 +23,9 @@ describe('api client', () => {
       }),
     );
 
-    const error = await apiFetch('/readings', { method: 'POST', body: {} }).catch((caught) => caught);
+    const error = await apiFetch('/readings', { method: 'POST', body: {} }).catch(
+      (caught) => caught,
+    );
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error.message).toBe('You already have an After lunch reading for this date.');

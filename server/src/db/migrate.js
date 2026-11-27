@@ -20,9 +20,7 @@ export async function runMigrations(db) {
     );
   `);
 
-  const files = (await fs.readdir(migrationsDir))
-    .filter((file) => file.endsWith('.sql'))
-    .sort();
+  const files = (await fs.readdir(migrationsDir)).filter((file) => file.endsWith('.sql')).sort();
 
   const applied = [];
 

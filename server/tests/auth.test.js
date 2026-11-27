@@ -160,7 +160,7 @@ describe('auth', () => {
   });
 
   describe('data isolation', () => {
-    it('does not let one user read, update or delete another user\'s reading', async () => {
+    it("does not let one user read, update or delete another user's reading", async () => {
       const owner = await registerUser(api, { email: 'owner@example.com' });
       const stranger = await registerUser(api, { email: 'stranger@example.com' });
 

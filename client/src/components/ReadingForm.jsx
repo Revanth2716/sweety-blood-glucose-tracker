@@ -27,9 +27,10 @@ export default function ReadingForm({
   const [values, setValues] = useState(() => ({
     date: initialValues?.date ?? todayISO(),
     slot: initialValues?.slot ?? 'morning',
-    value: initialValues?.value === undefined || initialValues?.value === null
-      ? ''
-      : String(initialValues.value),
+    value:
+      initialValues?.value === undefined || initialValues?.value === null
+        ? ''
+        : String(initialValues.value),
   }));
   const [errors, setErrors] = useState({});
   const [generalError, setGeneralError] = useState('');

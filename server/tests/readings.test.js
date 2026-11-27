@@ -43,10 +43,7 @@ describe('readings CRUD', () => {
       ['after_lunch', 140],
       ['after_breakfast', 110],
     ]) {
-      await api
-        .post('/api/readings')
-        .set(bearer(token))
-        .send({ date: '2026-10-20', slot, value });
+      await api.post('/api/readings').set(bearer(token)).send({ date: '2026-10-20', slot, value });
     }
 
     const response = await api.get('/api/readings?date=2026-10-20').set(bearer(token));
@@ -127,7 +124,9 @@ describe('readings CRUD', () => {
       .send({ date: '2026-10-19', slot: 'morning', value: 140 });
 
     expect(response.status).toBe(409);
-    expect(response.body.error.message).toBe('You already have a Morning (fasting) reading for this date.');
+    expect(response.body.error.message).toBe(
+      'You already have a Morning (fasting) reading for this date.',
+    );
   });
 
   it('moves a reading to another date', async () => {

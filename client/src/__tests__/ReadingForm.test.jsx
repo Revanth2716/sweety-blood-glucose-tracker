@@ -91,14 +91,16 @@ describe('ReadingForm', () => {
 
   it('shows the message of the API when the slot is already taken', async () => {
     const user = userEvent.setup();
-    const onSubmit = vi.fn().mockRejectedValue(
-      new ApiError(
-        'You already have an After lunch reading for this date.',
-        409,
-        'SLOT_TAKEN',
-        'slot',
-      ),
-    );
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValue(
+        new ApiError(
+          'You already have an After lunch reading for this date.',
+          409,
+          'SLOT_TAKEN',
+          'slot',
+        ),
+      );
     render(<ReadingForm onSubmit={onSubmit} />);
 
     typeValue('120');
@@ -111,9 +113,11 @@ describe('ReadingForm', () => {
 
   it('shows the message of the API when the day already holds four readings', async () => {
     const user = userEvent.setup();
-    const onSubmit = vi.fn().mockRejectedValue(
-      new ApiError('You can add only 4 readings per day.', 400, 'MAX_READINGS_PER_DAY', 'value'),
-    );
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValue(
+        new ApiError('You can add only 4 readings per day.', 400, 'MAX_READINGS_PER_DAY', 'value'),
+      );
     render(<ReadingForm onSubmit={onSubmit} />);
 
     typeValue('120');

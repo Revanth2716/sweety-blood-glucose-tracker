@@ -45,9 +45,9 @@ function pickSlots(random) {
     [slots[index], slots[swapWith]] = [slots[swapWith], slots[index]];
   }
 
-  return slots.slice(0, count).sort(
-    (left, right) => ALL_SLOTS.indexOf(left) - ALL_SLOTS.indexOf(right),
-  );
+  return slots
+    .slice(0, count)
+    .sort((left, right) => ALL_SLOTS.indexOf(left) - ALL_SLOTS.indexOf(right));
 }
 
 /**

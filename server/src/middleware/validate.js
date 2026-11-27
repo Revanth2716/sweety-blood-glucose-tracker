@@ -18,7 +18,13 @@ export function validate(schema) {
 
     if (!result.success) {
       const issue = result.error.issues[0];
-      next(badRequest(issue?.message ?? 'Invalid request.', issue?.path?.join('.'), 'VALIDATION_ERROR'));
+      next(
+        badRequest(
+          issue?.message ?? 'Invalid request.',
+          issue?.path?.join('.'),
+          'VALIDATION_ERROR',
+        ),
+      );
       return;
     }
 

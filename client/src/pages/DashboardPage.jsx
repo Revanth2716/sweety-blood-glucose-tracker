@@ -16,7 +16,12 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [dayReadings, setDayReadings] = useState([]);
   const [allReadings, setAllReadings] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  });
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -153,7 +158,12 @@ export default function DashboardPage() {
           />
         ) : (
           <>
-            <ReadingList readings={allReadings} showDate onEdit={setEditing} onDelete={handleDelete} />
+            <ReadingList
+              readings={allReadings}
+              showDate
+              onEdit={setEditing}
+              onDelete={handleDelete}
+            />
             <div className="pagination">
               <button
                 type="button"

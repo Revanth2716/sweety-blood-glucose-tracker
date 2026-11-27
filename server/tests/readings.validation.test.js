@@ -129,7 +129,9 @@ describe('reading validation', () => {
     const second = await create({ date: '2026-09-10', slot: 'after_lunch', value: 130 });
 
     expect(second.status).toBe(409);
-    expect(second.body.error.message).toBe('You already have an After lunch reading for this date.');
+    expect(second.body.error.message).toBe(
+      'You already have an After lunch reading for this date.',
+    );
     expect(second.body.error.field).toBe('slot');
   });
 

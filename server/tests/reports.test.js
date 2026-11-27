@@ -27,10 +27,7 @@ describe('reports', () => {
    * @param {number} value
    */
   async function addReading(date, slot, value) {
-    const response = await api
-      .post('/api/readings')
-      .set(bearer(token))
-      .send({ date, slot, value });
+    const response = await api.post('/api/readings').set(bearer(token)).send({ date, slot, value });
     expect(response.status).toBe(201);
   }
 
@@ -95,7 +92,9 @@ describe('reports', () => {
       await addReading('2026-04-01', 'morning', 100);
       await addReading('2026-04-15', 'morning', 120);
 
-      const response = await api.get('/api/reports/month-to-date?date=2026-04-15').set(bearer(token));
+      const response = await api
+        .get('/api/reports/month-to-date?date=2026-04-15')
+        .set(bearer(token));
 
       expect(response.status).toBe(200);
       expect(response.body.report).toBe('month-to-date');
@@ -108,7 +107,9 @@ describe('reports', () => {
     it('does not include readings after the selected date', async () => {
       await addReading('2026-03-20', 'morning', 200);
 
-      const response = await api.get('/api/reports/month-to-date?date=2026-03-10').set(bearer(token));
+      const response = await api
+        .get('/api/reports/month-to-date?date=2026-03-10')
+        .set(bearer(token));
 
       expect(response.body.stats.count).toBe(0);
     });

@@ -33,5 +33,7 @@ export const loginSchema = z.object({
     .trim()
     .toLowerCase()
     .refine(looksLikeEmail, 'Please enter a valid email address.'),
-  password: z.string({ error: 'Please enter your password.' }).min(1, 'Please enter your password.'),
+  password: z
+    .string({ error: 'Please enter your password.' })
+    .min(1, 'Please enter your password.'),
 });

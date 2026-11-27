@@ -16,16 +16,16 @@ describe('pagination', () => {
     api = request(created.app);
     ({ token } = await registerUser(api, { email: 'pagination@example.com' }));
 
-    // 25 readings spread over several days.
+    // 25 readings spread over two months.
     const slots = ['morning', 'after_breakfast', 'after_lunch', 'after_dinner'];
     for (let index = 0; index < 25; index += 1) {
       const day = String(1 + (index % 7)).padStart(2, '0');
-      const month = String(1 + Math.floor(index / 7)).padStart(2, '0');
+      const month = index < 14 ? '02' : '03';
       const response = await api
         .post('/api/readings')
         .set(bearer(token))
         .send({
-          date: `2026-02-${day}`,
+          date: `2026-${month}-${day}`,
           slot: slots[index % 4],
           value: 100 + index,
         });
