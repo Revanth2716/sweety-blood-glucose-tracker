@@ -31,4 +31,20 @@ describe('health endpoint', () => {
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe('NOT_FOUND');
   });
+
+  it('serves the OpenAPI document', async () => {
+    const response = await api.get('/api/openapi.json');
+
+    expect(response.status).toBe(200);
+    expect(response.body.openapi).toBe('3.0.3');
+    expect(response.body.paths['/readings']).toBeDefined();
+    expect(response.body.paths['/reports/daily']).toBeDefined();
+  });
+
+  it('serves the Swagger UI page', async () => {
+    const response = await api.get('/api/docs');
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('swagger-ui');
+  });
 });

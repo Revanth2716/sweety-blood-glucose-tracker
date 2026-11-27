@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
 import { createReadingsRouter } from './modules/readings/readings.routes.js';
 import { createReportsRouter } from './modules/reports/reports.routes.js';
+import { createDocsRouter } from './docs/docs.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 /**
@@ -29,7 +30,7 @@ export function createApp({ db, config }) {
   app.use('/api/auth', createAuthRouter({ db, config }));
   app.use('/api/readings', createReadingsRouter({ db, config }));
   app.use('/api/reports', createReportsRouter({ db, config }));
-
+  app.use('/api', createDocsRouter());
   app.use(notFoundHandler);
   app.use(errorHandler);
 
