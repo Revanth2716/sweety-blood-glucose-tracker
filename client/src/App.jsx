@@ -6,6 +6,7 @@ import SignupPage from './pages/SignupPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import { useAuth } from './context/useAuth.js';
+import { ToastProvider } from './context/ToastProvider.jsx';
 
 /**
  * Redirects a signed in user away from the login and sign up pages.
@@ -28,30 +29,32 @@ function GuestOnly({ children }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route
-          path="/login"
-          element={
-            <GuestOnly>
-              <LoginPage />
-            </GuestOnly>
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            <GuestOnly>
-              <SignupPage />
-            </GuestOnly>
-          }
-        />
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
+    <ToastProvider>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route
+            path="/login"
+            element={
+              <GuestOnly>
+                <LoginPage />
+              </GuestOnly>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <GuestOnly>
+                <SignupPage />
+              </GuestOnly>
+            }
+          />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+      </Routes>
+    </ToastProvider>
   );
 }

@@ -17,7 +17,8 @@ export default function ReadingList({ readings, onEdit, onDelete, showDate = fal
         <tr>
           {showDate ? <th>Date</th> : null}
           <th>Time slot</th>
-          <th>Value (mg/dl)</th>
+          <th>Value</th>
+          <th>Status</th>
           <th>Recorded</th>
           {onEdit || onDelete ? <th aria-label="Actions" /> : null}
         </tr>
@@ -27,7 +28,15 @@ export default function ReadingList({ readings, onEdit, onDelete, showDate = fal
           <tr key={reading.id}>
             {showDate ? <td>{formatDate(reading.date)}</td> : null}
             <td>{reading.slotLabel}</td>
-            <td className="value-cell">{reading.value}</td>
+            <td className="value-cell">
+              {reading.value}
+              <small className="muted"> mg/dl</small>
+            </td>
+            <td>
+              <span className={`pill ${reading.status ?? 'neutral'}`}>
+                {reading.statusLabel ?? '–'}
+              </span>
+            </td>
             <td className="muted">{formatDateTime(reading.createdAt)}</td>
             {onEdit || onDelete ? (
               <td className="row-actions">

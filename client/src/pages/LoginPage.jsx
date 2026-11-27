@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth.js';
+import Logo from '../components/Logo.jsx';
 
 /**
  * The sign in page.
@@ -34,8 +35,14 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <section className="card auth-card">
-        <h1>Welcome back</h1>
-        <p className="muted">Sign in to see your readings and reports.</p>
+        <div className="auth-logo" aria-hidden="true">
+          <Logo size={34} />
+        </div>
+        <p className="eyebrow">Welcome back</p>
+        <h1>
+          Sign in to <span className="gradient-text">Sweety</span>
+        </h1>
+        <p className="muted">Your readings and reports are waiting for you.</p>
 
         <form className="form" onSubmit={handleSubmit} noValidate>
           <div className="field">

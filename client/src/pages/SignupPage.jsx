@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth.js';
+import Logo from '../components/Logo.jsx';
 
 /**
  * The registration page.
@@ -35,7 +36,13 @@ export default function SignupPage() {
   return (
     <div className="auth-page">
       <section className="card auth-card">
-        <h1>Create your account</h1>
+        <div className="auth-logo" aria-hidden="true">
+          <Logo size={34} />
+        </div>
+        <p className="eyebrow">Get started</p>
+        <h1>
+          Create your <span className="gradient-text">account</span>
+        </h1>
         <p className="muted">Start recording your blood glucose readings.</p>
 
         <form className="form" onSubmit={handleSubmit} noValidate>

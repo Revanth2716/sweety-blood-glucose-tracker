@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../api/client.js';
 import { useAuth } from '../context/useAuth.js';
+import { useToast } from '../context/useToast.js';
 import { formatDate, todayISO } from '../lib/dates.js';
+import { SLOTS } from '../lib/readings.js';
+import { TIR_BAND } from '../lib/targets.js';
 import ReadingForm from '../components/ReadingForm.jsx';
 import ReadingList from '../components/ReadingList.jsx';
+import SlotCard from '../components/SlotCard.jsx';
+import TirGauge from '../components/TirGauge.jsx';
+import Skeleton from '../components/Skeleton.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 
 const PAGE_SIZE = 10;
@@ -13,6 +19,7 @@ const PAGE_SIZE = 10;
  */
 export default function DashboardPage() {
   const { user, token } = useAuth();
+  const { notify } = useToast();
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [dayReadings, setDayReadings] = useState([]);
   const [allReadings, setAllReadings] = useState([]);
@@ -24,6 +31,7 @@ export default function DashboardPage() {
   });
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(null);
+  const [presetSlot, setPresetSlot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -56,6 +64,8 @@ export default function DashboardPage() {
    */
   async function handleCreate(values) {
     await apiFetch('/readings', { method: 'POST', body: values, token });
+    notify(`Reading of ${values.value} mg/dl saved.`);
+    setPresetSlot(null);
     await load();
   }
 
@@ -64,6 +74,7 @@ export default function DashboardPage() {
    */
   async function handleUpdate(values) {
     await apiFetch(`/readings/${editing.id}`, { method: 'PUT', body: values, token });
+    notify('Reading updated.');
     setEditing(null);
     await load();
   }
@@ -81,21 +92,80 @@ export default function DashboardPage() {
 
     try {
       await apiFetch(`/readings/${reading.id}`, { method: 'DELETE', token });
+      notify('Reading deleted.');
       await load();
     } catch (deleteError) {
       setError(deleteError.message);
+      notify(deleteError.message, 'error');
     }
   }
 
+  const readingBySlot = useMemo(() => {
+    const map = {};
+    for (const reading of dayReadings) {
+      map[reading.slot] = reading;
+    }
+    return map;
+  }, [dayReadings]);
+
+  const dayTir = useMemo(() => {
+    if (dayReadings.length === 0) {
+      return { percent: null, inRange: 0, belowRange: 0, aboveRange: 0, total: 0 };
+    }
+
+    let inRange = 0;
+    let belowRange = 0;
+    let aboveRange = 0;
+
+    for (const reading of dayReadings) {
+      if (reading.value < TIR_BAND.min) {
+        belowRange += 1;
+      } else if (reading.value > TIR_BAND.max) {
+        aboveRange += 1;
+      } else {
+        inRange += 1;
+      }
+    }
+
+    return {
+      percent: Math.round((inRange / dayReadings.length) * 1000) / 10,
+      inRange,
+      belowRange,
+      aboveRange,
+      total: dayReadings.length,
+    };
+  }, [dayReadings]);
+
   const firstShown = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
   const lastShown = Math.min(pagination.page * pagination.limit, pagination.total);
+
+  const formValues = editing ?? (presetSlot ? { date: selectedDate, slot: presetSlot } : undefined);
+  const formKey = editing?.id ?? presetSlot ?? 'new';
 
   return (
     <div className="stack">
       <header className="page-header">
         <div>
-          <h1>Hello, {user?.name}</h1>
+          <p className="eyebrow">Dashboard</p>
+          <h1>
+            Hello, <span className="gradient-text">{user?.name}</span>
+          </h1>
           <p className="muted">Record up to four readings a day and keep track of your glucose.</p>
+        </div>
+
+        <div className="controls">
+          <input
+            className="date-input"
+            type="date"
+            aria-label="Select a date"
+            value={selectedDate}
+            max={todayISO()}
+            onChange={(event) => {
+              setPage(1);
+              setSelectedDate(event.target.value);
+              setPresetSlot(null);
+            }}
+          />
         </div>
       </header>
 
@@ -107,53 +177,83 @@ export default function DashboardPage() {
 
       <div className="columns">
         <ReadingForm
-          key={editing?.id ?? 'new'}
-          initialValues={editing ?? undefined}
+          key={formKey}
+          initialValues={formValues}
           onSubmit={editing ? handleUpdate : handleCreate}
-          onCancel={editing ? () => setEditing(null) : undefined}
+          onCancel={
+            editing || presetSlot
+              ? () => {
+                  setEditing(null);
+                  setPresetSlot(null);
+                }
+              : undefined
+          }
           submitLabel={editing ? 'Update reading' : 'Add reading'}
           title={editing ? 'Edit reading' : 'Add a reading'}
         />
 
-        <section className="card">
-          <div className="card-header">
-            <h2>Readings on {formatDate(selectedDate)}</h2>
-            <input
-              className="date-input"
-              type="date"
-              aria-label="Select a date"
-              value={selectedDate}
-              max={todayISO()}
-              onChange={(event) => {
-                setPage(1);
-                setSelectedDate(event.target.value);
-              }}
-            />
-          </div>
+        <div className="stack">
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h2>Readings on {formatDate(selectedDate)}</h2>
+                <p className="muted">{dayReadings.length} of 4 slots recorded</p>
+              </div>
+            </div>
 
-          {loading ? (
-            <p className="muted">Loading readings…</p>
-          ) : dayReadings.length === 0 ? (
-            <EmptyState
-              title="Nothing recorded for this day"
-              message="Add a reading with the form to start your record for this day."
+            {loading ? (
+              <div className="slot-grid">
+                {SLOTS.map((slot) => (
+                  <div className="skeleton skeleton-card" key={slot.value} />
+                ))}
+              </div>
+            ) : (
+              <div className="slot-grid">
+                {SLOTS.map((slot) => (
+                  <SlotCard
+                    key={slot.value}
+                    slot={slot}
+                    reading={readingBySlot[slot.value]}
+                    onEdit={setEditing}
+                    onDelete={handleDelete}
+                    onAdd={(value) => {
+                      setEditing(null);
+                      setPresetSlot(value);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="card">
+            <div className="card-header">
+              <h2>Time in range today</h2>
+              <span className="muted">70-180 mg/dl</span>
+            </div>
+            <TirGauge
+              percent={dayTir.percent}
+              inRange={dayTir.inRange}
+              belowRange={dayTir.belowRange}
+              aboveRange={dayTir.aboveRange}
+              total={dayTir.total}
             />
-          ) : (
-            <ReadingList readings={dayReadings} onEdit={setEditing} onDelete={handleDelete} />
-          )}
-        </section>
+          </section>
+        </div>
       </div>
 
       <section className="card">
         <div className="card-header">
           <h2>All readings</h2>
+          <span className="muted">Your complete history</span>
         </div>
 
         {loading ? (
-          <p className="muted">Loading readings…</p>
+          <Skeleton lines={6} height={18} />
         ) : allReadings.length === 0 ? (
           <EmptyState
             title="No readings yet"
+            glyph="◇"
             message="Your readings will appear here once you record your first one."
           />
         ) : (

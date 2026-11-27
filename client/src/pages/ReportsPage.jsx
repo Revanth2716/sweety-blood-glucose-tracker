@@ -5,6 +5,9 @@ import { formatDate, todayISO } from '../lib/dates.js';
 import ReportCards from '../components/ReportCards.jsx';
 import ReadingList from '../components/ReadingList.jsx';
 import EmptyState from '../components/EmptyState.jsx';
+import TirGauge from '../components/TirGauge.jsx';
+import Skeleton from '../components/Skeleton.jsx';
+import AnimatedNumber from '../components/AnimatedNumber.jsx';
 
 // The chart is loaded on demand, so that the charting library stays out of the main bundle.
 const GlucoseChart = lazy(() => import('../components/GlucoseChart.jsx'));
@@ -46,13 +49,17 @@ export default function ReportsPage() {
   }, [load]);
 
   const showChart = reportType !== 'daily';
+  const hasReadings = report && report.stats.count > 0;
 
   return (
     <div className="stack">
       <header className="page-header">
         <div>
-          <h1>Reports</h1>
-          <p className="muted">Your glucose numbers for a day, a month so far or last month.</p>
+          <p className="eyebrow">Reports</p>
+          <h1>
+            Your glucose <span className="gradient-text">insights</span>
+          </h1>
+          <p className="muted">A day, a month so far or the month before.</p>
         </div>
 
         <div className="controls">
@@ -90,42 +97,95 @@ export default function ReportsPage() {
 
       {loading ? (
         <section className="card">
-          <p className="muted">Building the report…</p>
+          <Skeleton lines={4} height={20} />
         </section>
       ) : report ? (
         <>
           <section className="card">
             <div className="card-header">
-              <h2>{report.range.label}</h2>
-              <span className="muted">
-                {formatDate(report.range.from)}
-                {report.range.from !== report.range.to ? ` – ${formatDate(report.range.to)}` : ''}
-              </span>
+              <div>
+                <h2>{report.range.label}</h2>
+                <p className="muted">
+                  {formatDate(report.range.from)}
+                  {report.range.from !== report.range.to ? ` – ${formatDate(report.range.to)}` : ''}
+                </p>
+              </div>
+              <span className="muted">compared with {report.previousRange.label}</span>
             </div>
 
-            <ReportCards stats={report.stats} />
+            <ReportCards stats={report.stats} trend={report.trend} previousLabel="vs previous" />
           </section>
 
-          {report.stats.count === 0 ? (
+          {!hasReadings ? (
             <section className="card">
               <EmptyState
                 title="No readings in this period"
+                glyph="◌"
                 message="There are no readings for this period yet. Record a reading and the numbers will show up here."
               />
             </section>
           ) : (
             <>
+              <div className="columns" style={{ gridTemplateColumns: 'minmax(320px, 420px) 1fr' }}>
+                <section className="card">
+                  <div className="card-header">
+                    <h2>Time in range</h2>
+                    <span className="muted">70-180 mg/dl</span>
+                  </div>
+                  <TirGauge
+                    percent={report.stats.timeInRange}
+                    inRange={report.stats.inRange}
+                    belowRange={report.stats.belowRange}
+                    aboveRange={report.stats.aboveRange}
+                    total={report.stats.count}
+                  />
+                </section>
+
+                <section className="card">
+                  <div className="card-header">
+                    <h2>By time slot</h2>
+                    <span className="muted">Average per slot</span>
+                  </div>
+
+                  {report.slots.length === 0 ? (
+                    <p className="muted">No readings to break down.</p>
+                  ) : (
+                    <div className="stat-grid">
+                      {report.slots.map((slot) => (
+                        <div className="stat-card" key={slot.slot}>
+                          <span className="stat-label">{slot.slotLabel}</span>
+                          <span className="stat-value">
+                            <AnimatedNumber value={slot.average} decimals={1} />
+                            <small>mg/dl</small>
+                          </span>
+                          <span className="stat-foot muted">
+                            {slot.count} reading{slot.count === 1 ? '' : 's'} · target{' '}
+                            {slot.target.min}-{slot.target.max}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+
               {showChart ? (
                 <section className="card">
-                  <h2>Readings over the period</h2>
-                  <Suspense fallback={<p className="muted">Loading the chart…</p>}>
+                  <div className="card-header">
+                    <h2>Readings over the period</h2>
+                    <span className="muted">The green band is the target range</span>
+                  </div>
+                  <Suspense fallback={<Skeleton lines={4} height={20} />}>
                     <GlucoseChart readings={report.readings} />
                   </Suspense>
                 </section>
               ) : null}
 
               <section className="card">
-                <h2>Readings</h2>
+                <div className="card-header">
+                  <h2>Readings</h2>
+                  <span className="muted">{report.stats.count} in this period</span>
+                </div>
                 <ReadingList readings={report.readings} showDate />
               </section>
             </>

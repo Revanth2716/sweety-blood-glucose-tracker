@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { todayISO } from '../lib/dates.js';
 import { MESSAGES, SLOTS, validateReading } from '../lib/readings.js';
+import { STATUS_LABELS, classifyReading, targetFor } from '../lib/targets.js';
 
 /**
  * The form used to add a reading and to edit an existing one.
@@ -35,6 +36,24 @@ export default function ReadingForm({
   const [errors, setErrors] = useState({});
   const [generalError, setGeneralError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const target = targetFor(values.slot);
+
+  // A live preview of where the value would land, while the user is still typing.
+  const preview = useMemo(() => {
+    const raw = values.value.trim();
+    if (!/^\d+$/.test(raw)) {
+      return null;
+    }
+
+    const value = Number(raw);
+    if (value < 40 || value > 600) {
+      return null;
+    }
+
+    const status = classifyReading(value, values.slot);
+    return { status, statusLabel: STATUS_LABELS[status] };
+  }, [values.value, values.slot]);
 
   /**
    * @param {import('react').ChangeEvent<HTMLInputElement | HTMLSelectElement>} event
@@ -121,7 +140,14 @@ export default function ReadingForm({
             <p className="field-error" role="alert">
               {errors.value}
             </p>
-          ) : null}
+          ) : preview ? (
+            <p className="muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span className={`pill ${preview.status}`}>{preview.statusLabel}</span>
+              <span>{target.label}</span>
+            </p>
+          ) : (
+            <p className="muted">{target.label}</p>
+          )}
         </div>
 
         {generalError ? (

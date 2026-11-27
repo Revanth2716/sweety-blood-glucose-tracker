@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth.js';
+import Logo from './Logo.jsx';
 
 /**
  * The page frame: the navigation bar and the current page.
@@ -23,9 +24,9 @@ export default function Layout() {
         <div className="nav-inner">
           <NavLink to="/" className="brand">
             <span className="brand-mark" aria-hidden="true">
-              &#9679;
+              <Logo size={20} />
             </span>
-            Sweety
+            <span className="gradient-text">Sweety</span>
           </NavLink>
 
           {user ? (
@@ -35,12 +36,17 @@ export default function Layout() {
               </NavLink>
               <NavLink to="/reports">Reports</NavLink>
             </nav>
-          ) : null}
+          ) : (
+            <nav className="nav-links" aria-label="Main navigation" />
+          )}
 
           <div className="nav-user">
             {user ? (
               <>
-                <span className="muted">{user.name}</span>
+                <span className="user-chip">
+                  <span className="live-dot" aria-hidden="true" />
+                  <span>{user.name}</span>
+                </span>
                 <button type="button" className="button small ghost" onClick={handleLogout}>
                   Log out
                 </button>
