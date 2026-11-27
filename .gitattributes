@@ -1,0 +1,11 @@
+# Normalise line endings: the repository stores LF, every platform checks out with its own style.
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.mp4 binary
+*.woff binary
+*.woff2 binary
