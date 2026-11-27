@@ -135,3 +135,59 @@ export function previousMonthRange(date) {
   const prefix = `${previousYear}-${String(previousMonth).padStart(2, '0')}`;
   return { from: `${prefix}-01`, to: `${prefix}-${String(lastDay).padStart(2, '0')}` };
 }
+
+/**
+ * Shift a date by a number of days.
+ *
+ * @param {string} date `YYYY-MM-DD`
+ * @param {number} days
+ * @returns {string}
+ */
+export function addDays(date, days) {
+  const [year, month, day] = date.split('-').map(Number);
+  const shifted = new Date(year, month - 1, day);
+  shifted.setDate(shifted.getDate() + days);
+  return toISODate(shifted);
+}
+
+/**
+ * Shift a date by a number of months. The day is clamped to the length of the target month,
+ * so the 31st of January becomes the 28th or 29th of February.
+ *
+ * @param {string} date `YYYY-MM-DD`
+ * @param {number} months
+ * @returns {string}
+ */
+export function shiftMonths(date, months) {
+  const [year, month, day] = date.split('-').map(Number);
+  const target = new Date(year, month - 1 + months, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  return toISODate(new Date(target.getFullYear(), target.getMonth(), Math.min(day, lastDay)));
+}
+
+/**
+ * The range covering the whole calendar month of the given date.
+ *
+ * @param {string} date `YYYY-MM-DD`
+ * @returns {{ from: string, to: string }}
+ */
+export function monthRange(date) {
+  const [year, month] = date.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  return { from: `${prefix}-01`, to: `${prefix}-${String(lastDay).padStart(2, '0')}` };
+}
+
+/**
+ * The number of days of a range, both ends included.
+ *
+ * @param {{ from: string, to: string }} range
+ * @returns {number}
+ */
+export function rangeLength(range) {
+  const [fromYear, fromMonth, fromDay] = range.from.split('-').map(Number);
+  const [toYear, toMonth, toDay] = range.to.split('-').map(Number);
+  const start = Date.UTC(fromYear, fromMonth - 1, fromDay);
+  const end = Date.UTC(toYear, toMonth - 1, toDay);
+  return Math.round((end - start) / 86400000) + 1;
+}

@@ -1,4 +1,5 @@
 import { slotLabel } from '../../lib/slots.js';
+import { STATUS_LABELS, classifyReading, targetFor } from '../../lib/targets.js';
 
 const READING_COLUMNS = `
   id,
@@ -170,15 +171,31 @@ export function createReadingsRepository(db) {
 
 /**
  * @param {any} row
- * @returns {{ id: string, date: string, slot: string, slotLabel: string, value: number, createdAt: string | null, updatedAt: string | null }}
+ * @returns {{
+ *   id: string,
+ *   date: string,
+ *   slot: string,
+ *   slotLabel: string,
+ *   value: number,
+ *   status: 'low' | 'in-range' | 'high',
+ *   statusLabel: string,
+ *   target: { min: number, max: number, label: string },
+ *   createdAt: string | null,
+ *   updatedAt: string | null
+ * }}
  */
 export function toReadingDto(row) {
+  const status = classifyReading(row.value, row.slot);
+
   return {
     id: row.id,
     date: row.reading_date,
     slot: row.slot,
     slotLabel: slotLabel(row.slot),
     value: row.value,
+    status,
+    statusLabel: STATUS_LABELS[status],
+    target: targetFor(row.slot),
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
     updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
   };
