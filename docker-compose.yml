@@ -1,0 +1,66 @@
+# Sweety - the whole stack in one command:
+#
+#   docker compose up --build
+#
+#   web  -> http://localhost:8080   (nginx, proxies /api to the api container)
+#   api  -> http://localhost:4000/api
+#   db   -> postgresql://sweety:sweety@localhost:5432/sweety
+#
+# The API applies the migrations when it starts, so the database is ready right away.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sweety-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sweety
+      POSTGRES_PASSWORD: sweety
+      POSTGRES_DB: sweety
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sweety -d sweety']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: sweety-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      CLIENT_ORIGIN: http://localhost:8080
+      JWT_SECRET: ${JWT_SECRET:-change_this_secret_before_going_public}
+      JWT_EXPIRES_IN: 7d
+      BCRYPT_ROUNDS: 10
+      RATE_LIMIT_MAX: 100
+      DB_MODE: postgres
+      DATABASE_URL: postgresql://sweety:sweety@db:5432/sweety
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '4000:4000'
+
+  web:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+      args:
+        VITE_API_URL: /api
+    container_name: sweety-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '8080:80'
+
+volumes:
+  pgdata:
